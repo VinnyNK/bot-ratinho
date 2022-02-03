@@ -1,55 +1,37 @@
-const { Client, Intents } = require('discord.js');
+const { Client, Intents, Collection } = require('discord.js');
 const { token } = require('./config.json');
-const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus} = require('@discordjs/voice');
+const { logger } = require('./utils/logger')
+const fs = require("fs");
 
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.DIRECT_MESSAGES, Intents.FLAGS.GUILD_VOICE_STATES] });
-const player = createAudioPlayer();
 
 client.once('ready', () => {
-    console.log('Ready!');
+    logger("CONECTADO COM SUCESSO")
 });
 
-client.on('messageCreate', message => {
-    console.log('oioi')
-    if (message.content === "PARE")
-    {
+client.commands = new Collection();
 
-        const resource = createAudioResource("./audios/pare.mp3");
-        console.log("CRIADO RESOURCE")
-        player.play(resource)
-        console.log("ADD TO PLAYER")
+const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
 
-        try {
-            const connection = joinVoiceChannel({
-                channelId: message.member.voice.channel.id,
-                guildId: message.guild.id,
-                adapterCreator: message.guild.voiceAdapterCreator
-            });
-            console.log("CRIADO CONNECTION")
-
-            connection.subscribe(player)
-            console.log("Bot sent to voice")
-
-            message.reply("RATINHOOOO")
-            console.log("SEND RATINHO")
+for (const file of commandFiles) {
+    const command = require(`./commands/${file}`);
+    client.commands.set(command.data.name, command);
+}
 
 
-            player.on(AudioPlayerStatus.Idle, () => {
-                console.log("audio em idle")
-                connection.destroy();
-            })
+client.on('interactionCreate', async interaction => {
+    if (!interaction.isCommand()) return;
+    logger("####INICIO COMANDO####")
+    const command = client.commands.get(interaction.commandName);
 
-        }
-        catch (e)
-        {
-            console.log("NAO ESTA LOGADO EM NDA")
-            message.reply("RAAAPAZ!! VC TEM QUE ESTAR EM UMA SALA DE VOZ")
-        }
+    if (!command) return;
 
-
-
-
+    try {
+        await command.execute(interaction);
+    } catch (error) {
+        logger(error);
+        interaction.reply("UÊPA!!! ESTAMOS COM PROBLEMAS PARA EXECUTAR O COMANDO");
     }
-})
+});
 
 client.login(token);
