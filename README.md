@@ -1,7 +1,7 @@
 # bot-ratinho
 Bot para Discord com sons do iconico programa Ratinho
 
-criar arquivo config.json
+criar arquivo ``config.json`` 
 
 ```
 {
